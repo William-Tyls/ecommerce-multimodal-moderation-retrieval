@@ -13,28 +13,56 @@
 ## 系统流程
 
 ```mermaid
-flowchart TD
-    A[商品 metadata] --> B[字段校验]
-    A --> C[标题 / 描述文本]
-    A --> D[商品图片]
+flowchart LR
+    subgraph OFF["离线构建：索引与证据"]
+        direction TB
+        A["商品数据<br/>items.csv + 商品图片"] --> B["字段校验<br/>validate_items.py"]
+        B --> C["图片 Manifest<br/>build_image_manifest.py"]
 
-    B --> E[图片 manifest]
-    C --> F[规则检测]
-    D --> G[OCR 识别]
-    G --> H[OCR 规则检测]
+        A --> D["标题 / 描述文本"]
+        D --> E["规则检测<br/>run_rules.py"]
 
-    E --> I[SigLIP 图片 Encoder]
-    I --> J[图片 Embedding]
-    J --> K[图片相似检索]
+        C --> F["OCR 识别<br/>run_ocr.py"]
+        F --> G["OCR 规则检测<br/>run_ocr_rules.py"]
 
-    F --> L[证据聚合]
-    H --> L
-    K --> L
+        C --> H["SigLIP 图片编码<br/>compute_clip_image_embeddings.py"]
+        H --> I["图片 Embedding 缓存<br/>npz + manifest"]
+        I --> J["图片相似检索<br/>run_clip_image_retrieval.py"]
 
-    L --> M[商品级 Audit Case]
-    M --> N[自然语言查询]
-    M --> O[参考图片查询]
-    M --> P[导出审核结果]
+        E --> K["证据池<br/>规则证据"]
+        G --> K
+        J --> K
+        K --> L["商品级 Audit Cases<br/>build_evidence.py"]
+    end
+
+    subgraph ON["在线使用：查询与审核输出"]
+        direction TB
+        M["审核员输入"] --> N["意图路由<br/>query_cli.py"]
+        N --> O["自然语言查询<br/>风险类型 / 文案线索"]
+        N --> P["参考图片查询<br/>相似图 / 近重复"]
+
+        O --> Q["读取 Audit Cases<br/>筛选风险商品"]
+        P --> R["图片候选召回<br/>相似度阈值过滤"]
+        R --> Q
+
+        Q --> S["审核结果"]
+        S --> T["疑似商品列表"]
+        S --> U["命中证据<br/>规则 / OCR / 图片相似度"]
+        S --> V["建议处理动作<br/>放行 / 复核 / 下架 / 聚合"]
+    end
+
+    L -.-> Q
+    I -.-> R
+
+    classDef data fill:#eef6ff,stroke:#4c78a8,stroke-width:1px,color:#111;
+    classDef process fill:#f7f7f7,stroke:#8a8a8a,stroke-width:1px,color:#111;
+    classDef evidence fill:#fff4df,stroke:#d08b16,stroke-width:1px,color:#111;
+    classDef output fill:#eaf7ea,stroke:#3a923a,stroke-width:1px,color:#111;
+
+    class A,C,I,L data;
+    class B,D,E,F,G,H,J,N,O,P,Q,R process;
+    class K,U evidence;
+    class S,T,V output;
 ```
 
 推荐视觉模型：
