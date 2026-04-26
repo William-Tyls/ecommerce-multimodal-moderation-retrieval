@@ -7,6 +7,7 @@
 - 规则检测：识别违禁商品、品牌侵权、站外导流、夸大宣传等风险。
 - OCR 证据：识别商品图片中的文字，并对 OCR 文本执行违规规则检测。
 - 图片检索：使用 SigLIP 生成商品图片 embedding，支持相似商品和近重复图片召回。
+- 图片理解：使用 Qwen2.5-VL 识别图片中的 logo、违禁品、导流信息等视觉风险证据。
 - 证据聚合：将规则、OCR、图片相似度等结果聚合为商品级 audit case。
 - 查询入口：支持自然语言审核查询和参考图片查询。
 
@@ -29,9 +30,12 @@ flowchart LR
         H --> I["图片 Embedding 缓存<br/>npz + manifest"]
         I --> J["图片相似检索<br/>run_clip_image_retrieval.py"]
 
+        C --> W["Qwen2.5-VL 图片理解<br/>run_vlm_evidence.py"]
+
         E --> K["证据池<br/>规则证据"]
         G --> K
         J --> K
+        W --> K
         K --> L["商品级 Audit Cases<br/>build_evidence.py"]
     end
 
@@ -47,7 +51,7 @@ flowchart LR
 
         Q --> S["审核结果"]
         S --> T["疑似商品列表"]
-        S --> U["命中证据<br/>规则 / OCR / 图片相似度"]
+        S --> U["命中证据<br/>规则 / OCR / 图片相似度 / VLM"]
         S --> V["建议处理动作<br/>放行 / 复核 / 下架 / 聚合"]
     end
 
@@ -60,7 +64,7 @@ flowchart LR
     classDef output fill:#eaf7ea,stroke:#3a923a,stroke-width:1px,color:#111;
 
     class A,C,I,L data;
-    class B,D,E,F,G,H,J,N,O,P,Q,R process;
+    class B,D,E,F,G,H,J,N,O,P,Q,R,W process;
     class K,U evidence;
     class S,T,V output;
 ```
@@ -161,6 +165,15 @@ python3 -m venv .venv
   --min-score 0.97
 ```
 
+生成 Qwen2.5-VL 图片理解证据：
+
+```bash
+.venv/bin/python scripts/run_vlm_evidence.py \
+  --items data/items.csv \
+  --backend qwen_vl \
+  --model-name Qwen/Qwen2.5-VL-3B-Instruct
+```
+
 聚合审核 case：
 
 ```bash
@@ -169,6 +182,7 @@ python3 -m venv .venv
   --evidence outputs/evidence/rule_evidence.jsonl \
   --evidence outputs/evidence/ocr_rule_evidence.jsonl \
   --evidence outputs/evidence/clip_image_similarity_evidence.jsonl \
+  --evidence outputs/evidence/vlm_evidence.jsonl \
   --include-clean
 ```
 
@@ -202,6 +216,7 @@ python3 -m venv .venv
 - 风险类型
 - 规则命中文本
 - OCR 命中文本
+- Qwen2.5-VL 图片理解证据
 - 相似图片匹配和分数
 - 建议处理动作
 
@@ -219,6 +234,7 @@ merge_duplicate   聚合处理
 - `docs/CLOUD_SETUP.md`：云端 GPU 和模型推理说明。
 - `docs/IMAGE_MANIFEST_AND_EMBEDDINGS.md`：图片 manifest 与 embedding cache 设计。
 - `docs/OCR_PIPELINE.md`：OCR 流程说明。
+- `docs/VLM_EVIDENCE.md`：Qwen2.5-VL 图片理解证据说明。
 
 ## License
 

@@ -1,0 +1,37 @@
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  max_new_tokens: 512
+
+prompts:
+  ecommerce_visual_risk:
+    description: Image understanding prompt for e-commerce moderation evidence.
+    text: |
+      你是电商平台违规内容审核助手。请只根据商品图片和给定商品信息，判断图片中是否存在可用于审核的视觉风险证据。
+
+      可选风险类型：
+      - prohibited_goods：违禁商品、管制品、平台禁售商品或相关配件
+      - counterfeit_brand：疑似品牌侵权、假货、高仿、品牌 logo 滥用
+      - image_duplicate：疑似重复铺货、盗图、近重复商品图
+      - off_platform_contact：图片中出现微信、VX、手机号、二维码、私聊等导流信息
+      - misleading_claim：图片中出现夸大宣传、绝对化承诺、医疗功效等表达
+
+      商品标题：{title}
+      商品描述：{description}
+      商品类目：{category}
+
+      请输出严格 JSON，不要输出 Markdown，不要添加解释文字。格式如下：
+      {{
+        "caption": "一句话描述图片主要内容",
+        "ocr_like_text": ["图片中可见的关键文字"],
+        "risk_assessments": [
+          {{
+            "risk_type": "prohibited_goods|counterfeit_brand|image_duplicate|off_platform_contact|misleading_claim",
+            "risk_objects": ["命中的视觉元素或文字"],
+            "evidence_reason": "为什么构成该风险的简短原因",
+            "confidence": 0.0,
+            "bbox": [x1, y1, x2, y2]
+          }}
+        ]
+      }}
+
+      如果没有明显风险，"risk_assessments" 输出空数组。bbox 无法判断时输出 null。

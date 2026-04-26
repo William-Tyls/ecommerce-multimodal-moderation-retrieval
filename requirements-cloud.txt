@@ -12,6 +12,7 @@ tqdm
 torch
 torchvision
 transformers
+qwen-vl-utils
 sentence-transformers
 accelerate
 safetensors
