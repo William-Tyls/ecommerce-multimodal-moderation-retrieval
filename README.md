@@ -12,17 +12,29 @@
 
 ## 系统流程
 
-```text
-商品 metadata + 商品图片
-  -> 字段校验
-  -> 图片 manifest
-  -> 规则检测
-  -> OCR 与 OCR 规则检测
-  -> SigLIP 图片 embedding
-  -> 图片相似检索
-  -> 证据聚合
-  -> 商品级审核 case
-  -> 查询 / 导出结果
+```mermaid
+flowchart TD
+    A[商品 metadata] --> B[字段校验]
+    A --> C[标题 / 描述文本]
+    A --> D[商品图片]
+
+    B --> E[图片 manifest]
+    C --> F[规则检测]
+    D --> G[OCR 识别]
+    G --> H[OCR 规则检测]
+
+    E --> I[SigLIP 图片 Encoder]
+    I --> J[图片 Embedding]
+    J --> K[图片相似检索]
+
+    F --> L[证据聚合]
+    H --> L
+    K --> L
+
+    L --> M[商品级 Audit Case]
+    M --> N[自然语言查询]
+    M --> O[参考图片查询]
+    M --> P[导出审核结果]
 ```
 
 推荐视觉模型：
@@ -182,4 +194,4 @@ merge_duplicate   聚合处理
 
 ## License
 
-公开发布或复用前，请补充合适的开源协议。
+本项目使用 [MIT License](LICENSE)。
