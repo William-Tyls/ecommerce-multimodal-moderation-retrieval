@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Local environment
+.env
+.env.*
+
+# Large data
+data/raw/
+data/images/
+data/crawled/
+data/generated/
+data/seeds/v0_4_urls.txt
+features/
+checkpoints/
+models/
+
+# Outputs
+outputs/crawl/
+outputs/**/*.jsonl
+outputs/**/*.csv
+outputs/**/*.parquet
+outputs/**/*.npy
+outputs/**/*.npz
+outputs/**/*.pt
+outputs/**/*.pth
+outputs/**/*.pkl
+
+# Keep output directories via .gitkeep
+!outputs/**/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/
+
+# 项目指导文件
+项目介绍文件

@@ -1,0 +1,171 @@
+# Synthetic platform-style dataset generation config.
+#
+# This config is intentionally explicit: the generated images are synthetic and
+# should be used to run the pipeline, not as a claim of real platform accuracy.
+
+dataset:
+  name: synthetic_platform_v0_4
+  item_count: 500
+  images_per_item: 1
+  split: test
+  output_items: data/seeds/v0_4_synthetic_platform_items.csv
+  output_plan: outputs/synthetic/v0_4_generation_plan.jsonl
+  image_dir: data/generated/v0_4_synthetic_platform/images
+
+openai_image:
+  model: gpt-image-1-mini
+  size: 1024x1024
+  quality: medium
+  request_delay_seconds: 0.2
+
+distribution:
+  normal: 250
+  prohibited_goods: 60
+  counterfeit_brand: 60
+  off_platform_contact: 60
+  misleading_claim: 40
+  image_duplicate: 30
+
+platform_styles:
+  - taobao_main_image
+  - xianyu_secondhand_listing
+  - jd_clean_product_card
+  - pdd_promo_collage
+  - livecommerce_screenshot_style
+
+categories:
+  clothing:
+    normal:
+      - plain cotton t-shirt
+      - lightweight sun-protection jacket
+      - casual jogger pants
+      - canvas tote bag
+    counterfeit_brand:
+      - luxury-style checkerboard tote bag
+      - replica-looking logo belt
+      - monogram-style wallet
+    misleading_claim:
+      - slimming waist sticker
+  electronics:
+    normal:
+      - phone stand
+      - braided usb-c cable
+      - wireless charging pad
+    prohibited_goods:
+      - electronic cigarette device
+      - vape pod cartridge
+    off_platform_contact:
+      - phone case bundle
+      - wireless earbuds accessory
+  beauty:
+    normal:
+      - hand cream set
+      - makeup brush kit
+      - travel mirror
+    misleading_claim:
+      - whitening serum
+      - hair growth spray
+      - anti-wrinkle eye cream
+    off_platform_contact:
+      - skincare sample set
+  outdoor:
+    normal:
+      - picnic mat
+      - running waist bag
+      - folding camping chair
+    prohibited_goods:
+      - tactical folding knife
+      - card knife
+  toys:
+    normal:
+      - building block toy
+      - children puzzle
+    prohibited_goods:
+      - realistic toy gun prop
+  home:
+    normal:
+      - storage box set
+      - aroma candle
+      - ceramic plate set
+    image_duplicate:
+      - storage organizer product photo
+  health:
+    normal:
+      - yoga resistance band
+      - neck pillow
+    misleading_claim:
+      - magnetic sleep aid necklace
+      - metabolism bracelet
+    prohibited_goods:
+      - prescription pill box display
+
+risk_text:
+  prohibited_goods:
+    title_keywords:
+      - 雾化器
+      - 烟弹
+      - 户外折叠刀
+      - 仿真模型枪
+      - 处方样品
+    visible_text:
+      - VAPE KIT
+      - RX ONLY
+      - TACTICAL
+  counterfeit_brand:
+    title_keywords:
+      - 复刻
+      - 一比一
+      - 原单感
+      - 高版本
+      - 仿奢风
+    visible_text:
+      - LUXURY STYLE
+      - 1:1
+      - SAME STYLE
+  off_platform_contact:
+    title_keywords:
+      - 私聊看款
+      - 加微详聊
+      - 不要直接拍
+      - 先联系改价
+    visible_text:
+      - VX: shop888
+      - 加V看图
+      - 私聊优惠
+  misleading_claim:
+    title_keywords:
+      - 七天见效
+      - 100%有效
+      - 快速变白
+      - 无需运动
+      - 根源改善
+    visible_text:
+      - 7 DAYS
+      - 100% EFFECTIVE
+      - FAST RESULT
+  image_duplicate:
+    title_keywords:
+      - 同图多店
+      - 爆款同款
+      - 多店铺热卖
+    visible_text:
+      - HOT SALE
+
+prompt_policy:
+  base_prompt: >
+    Create a clean realistic product photo on a simple neutral studio
+    background. Show only the product, with natural lighting, clear edges, and a
+    marketplace-main-image crop. Do not add any UI, promotional stickers,
+    badges, cards, labels, icons, price blocks, logos, watermarks, captions, or
+    decorative graphic shapes. Do not render readable text in any language: no
+    Chinese characters, no English words, no numbers, no fake brand labels, no
+    product name text. All marketplace UI and OCR-target text will be added by
+    the dataset script after generation.
+  negative_prompt: >
+    Avoid celebrity faces, real personal data, real QR codes, real phone
+    numbers, real trademark logos, explicit gore, sexual content, or realistic
+    illegal transaction instructions. Avoid distorted Chinese text, garbled
+    typography, readable letters, readable numbers, labels, signs, watermarks,
+    icons, badges, stickers, interface panels, price tags, and unreadable large
+    characters. Use fictional contact handles only when the dataset script
+    overlays them.

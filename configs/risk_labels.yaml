@@ -1,0 +1,70 @@
+risk_labels:
+  prohibited_goods:
+    name_zh: 违禁商品
+    description: 商品图片、标题或详情中出现平台禁止售卖的商品或相关配件。
+    examples:
+      - electronic cigarette
+      - vape
+      - tactical knife
+      - prescription drug
+    default_action: manual_review
+
+  counterfeit_brand:
+    name_zh: 品牌侵权或假货风险
+    description: 商品疑似使用品牌 logo、同款、高仿、A 货等侵权或假货表达。
+    examples:
+      - luxury logo
+      - replica
+      - high imitation
+      - same style
+    default_action: manual_review
+
+  image_duplicate:
+    name_zh: 盗图或重复铺货
+    description: 商品图片与其他商品高度相似，疑似盗图、重复铺货或同图多发。
+    examples:
+      - near duplicate product image
+      - same main image across shops
+    default_action: merge_duplicate
+
+  off_platform_contact:
+    name_zh: 导流或平台外交易
+    description: 商品标题、详情或图片 OCR 中出现微信、VX、手机号、二维码、私聊等导流信息。
+    examples:
+      - wechat
+      - vx
+      - phone number
+      - private chat
+    default_action: manual_review
+
+  misleading_claim:
+    name_zh: 夸大宣传
+    description: 商品文案中出现绝对化、医疗功效、虚假承诺等高风险宣传表达。
+    examples:
+      - best in the world
+      - guaranteed cure
+      - 100 percent effective
+    default_action: manual_review
+
+  normal:
+    name_zh: 正常商品
+    description: 未发现明显风险的普通商品。
+    examples:
+      - regular shoes
+      - phone case
+      - backpack
+    default_action: pass
+
+actions:
+  pass:
+    name_zh: 放行
+    description: 暂无明显违规风险。
+  manual_review:
+    name_zh: 人工复核
+    description: 存在疑似风险，需要审核员进一步判断。
+  remove_or_block:
+    name_zh: 下架或拦截
+    description: 高风险商品，建议下架或发布前拦截。
+  merge_duplicate:
+    name_zh: 聚合处理
+    description: 疑似盗图或重复铺货，建议合并线索后处理。

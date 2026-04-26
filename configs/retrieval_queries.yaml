@@ -1,0 +1,54 @@
+queries:
+  - query_id: q_prohibited_vape
+    text: 疑似售卖电子烟或雾化器的商品
+    risk_type: prohibited_goods
+    top_k: 10
+    min_score: 0.05
+
+  - query_id: q_prohibited_knife
+    text: 疑似售卖刀具、卡片刀、开刃工具的商品
+    risk_type: prohibited_goods
+    top_k: 10
+    min_score: 0.05
+
+  - query_id: q_prohibited_weapon_drug_tobacco
+    text: 仿真枪模型、模型枪、处方药、RX药品、雪茄烟草或其他禁售商品
+    risk_type: prohibited_goods
+    top_k: 10
+    min_score: 0.05
+
+  - query_id: q_off_platform_contact
+    text: 引导用户加微信、加V、私聊、留下手机号、页面联系方式、号码联系、团购V或私域相册的商品
+    risk_type: off_platform_contact
+    top_k: 10
+    min_score: 0.05
+
+  - query_id: q_off_platform_contact_alt
+    text: 页面联系方式、号码联系、团购V、私域相册、平台外沟通或拍前联系的商品
+    risk_type: off_platform_contact
+    top_k: 10
+    min_score: 0.05
+
+  - query_id: q_counterfeit_brand
+    text: 高仿、复刻、大牌平替、专柜品质、仿牌字母logo、仿奢风或疑似品牌侵权商品
+    risk_type: counterfeit_brand
+    top_k: 10
+    min_score: 0.05
+
+  - query_id: q_counterfeit_logo_style
+    text: 仿牌字母logo、仿奢风、老花、棋盘格、一比一、高版本或复刻包鞋饰品
+    risk_type: counterfeit_brand
+    top_k: 10
+    min_score: 0.05
+
+  - query_id: q_misleading_claim
+    text: 夸大宣传、保证效果、七天见效、明显变白、快速瘦腰、改善睡眠、排毒或包治的商品
+    risk_type: misleading_claim
+    top_k: 10
+    min_score: 0.05
+
+  - query_id: q_misleading_beauty_health
+    text: 明显变白、快速瘦腰、改善睡眠、一次使用提升色阶、长出新发或排毒功效商品
+    risk_type: misleading_claim
+    top_k: 10
+    min_score: 0.05

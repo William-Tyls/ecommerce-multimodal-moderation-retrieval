@@ -1,0 +1,20 @@
+# Cloud / GPU experiment dependencies.
+#
+# PyTorch CUDA wheels depend on the cloud image and CUDA version. If this
+# generic install gives a CPU-only torch build, follow the official PyTorch
+# selector for the specific CUDA runtime on the instance.
+numpy
+scikit-learn
+pandas
+PyYAML
+pillow
+tqdm
+torch
+torchvision
+transformers
+sentence-transformers
+accelerate
+safetensors
+huggingface_hub
+opencv-python-headless
+pytesseract
