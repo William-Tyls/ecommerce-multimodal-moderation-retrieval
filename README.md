@@ -1,265 +1,281 @@
-# E-Commerce Moderation Multimodal Retrieval
+# E-Commerce Multimodal Moderation Retrieval
 
-面向电商违规内容审核的多模态商品图文检索 Agent 项目。
+An explainable multimodal retrieval system for e-commerce content moderation.
 
-本项目目标是构建一套支持自然语言问答式交互的审核检索系统，帮助审核员定位疑似违规商品、查找盗图/重复铺货、发现违禁词和导流文案，并生成可解释证据链。
+The system helps reviewers find suspicious product listings from text, OCR, and product images, then aggregates the matched evidence into item-level moderation cases.
 
-## Current Stage
+## What It Does
 
-当前阶段已经进入 MVP 广度优先阶段，先用轻量 baseline 跑通审核检索、证据链和评估闭环：
+This repository keeps the final system architecture only. It does not include experimental datasets, generated images, model checkpoints, embedding caches, or evaluation artifacts.
 
-- 风险标签配置：`configs/risk_labels.yaml`
-- 规则词表配置：`configs/rules.yaml`
-- 商品数据模板：`data/items.csv`
-- 数据校验脚本：`scripts/validate_items.py`
-- 样本扩充脚本：`scripts/expand_sample_items.py`
-- 文本检索入口：`scripts/run_text_retrieval.py`
-- 文本检索扫描入口：`scripts/sweep_text_retrieval.py`
-- v0.2 数据集生成入口：`scripts/expand_sample_items_v0_2.py`
-- 图片相似检索入口：`scripts/run_image_similarity.py`
-- 图片相似评估入口：`scripts/evaluate_image_similarity.py`
-- 图片阈值扫描入口：`scripts/sweep_image_similarity.py`
-- 图片 manifest 入口：`scripts/build_image_manifest.py`
-- OCR 入口：`scripts/run_ocr.py`
-- OCR 规则证据入口：`scripts/run_ocr_rules.py`
-- CLIP/SigLIP 图片 embedding smoke：`scripts/smoke_clip_image_encoder.py`
-- CLIP/SigLIP 图片 embedding cache：`scripts/compute_clip_image_embeddings.py`
-- CLIP/SigLIP 图片检索：`scripts/run_clip_image_retrieval.py`
-- 查询 CLI：`scripts/query_cli.py`
-- 项目整体流程：`PROJECT_FLOW.md`
-- 当前进度记录：`STATUS.md`
-- v0.2 数据集说明：`docs/DATASET_V0_2.md`
-- 人工 seed 说明：`docs/CURATED_SEEDS.md`
-- embedding 文本检索说明：`docs/EMBEDDING_TEXT_RETRIEVAL.md`
-- 云端 GPU 环境说明：`docs/CLOUD_SETUP.md`
-- LLM 意图识别说明：`docs/LLM_INTENT_ROUTER.md`
-- OCR pipeline 说明：`docs/OCR_PIPELINE.md`
-- v0.4 真实平台爬取数据方案：`docs/DATASET_V0_4_CRAWLED.md`
+Core capabilities:
 
-## Quick Check
+- Rule-based detection for prohibited goods, counterfeit risk, off-platform contact, misleading claims, and duplicate-image risk.
+- OCR extraction over product images, followed by moderation rules on detected text.
+- Image embedding generation with CLIP-compatible Hugging Face vision models, with SigLIP as the recommended backbone.
+- Image-to-item retrieval from cached image embeddings.
+- Evidence aggregation into item-level audit cases.
+- A CLI for natural-language moderation queries and image-based lookup.
 
-```bash
-python3 scripts/validate_items.py --items data/items.csv --risk-labels configs/risk_labels.yaml
-python3 scripts/expand_sample_items.py --base data/items.csv --output data/items.csv
-python3 scripts/validate_items.py --items data/items.csv --risk-labels configs/risk_labels.yaml
-python3 scripts/run_rules.py --items data/items.csv --rules configs/rules.yaml --risk-labels configs/risk_labels.yaml
-python3 scripts/detect_duplicates.py --items data/items.csv --output outputs/evidence/duplicate_evidence.jsonl
-python3 scripts/run_text_retrieval.py --items data/items.csv --queries configs/retrieval_queries.yaml --rules configs/rules.yaml
-python3 scripts/evaluate_retrieval.py --items data/items.csv --results outputs/retrieval_results/text_retrieval.csv
-python3 scripts/sweep_text_retrieval.py --items data/items.csv --queries configs/retrieval_queries.yaml --rules configs/rules.yaml
-python3 scripts/generate_sample_images.py --items data/items.csv
-python3 scripts/build_image_manifest.py --items data/items.csv --output data/image_manifest.csv
-python3 scripts/run_image_similarity.py --items data/items.csv
-python3 scripts/evaluate_image_similarity.py --items data/items.csv --results outputs/retrieval_results/image_similarity.csv
-python3 scripts/sweep_image_similarity.py --items data/items.csv --results outputs/retrieval_results/image_similarity.csv
-python3 scripts/run_ocr.py --items data/items.csv --backend auto --output outputs/ocr/item_ocr.jsonl
-python3 scripts/run_ocr_rules.py --ocr outputs/ocr/item_ocr.jsonl --output outputs/evidence/ocr_rule_evidence.jsonl --summary outputs/evidence/ocr_rule_summary.csv
-.venv/bin/python scripts/run_ocr.py --items data/items.csv --backend tesseract --languages eng+chi_sim --output outputs/ocr/item_ocr_tesseract.jsonl
-.venv/bin/python scripts/run_ocr_rules.py --ocr outputs/ocr/item_ocr_tesseract.jsonl --output outputs/evidence/ocr_rule_evidence_tesseract.jsonl --summary outputs/evidence/ocr_rule_summary_tesseract.csv
-python3 scripts/build_evidence.py --items data/items.csv --evidence outputs/evidence/rule_evidence.jsonl --evidence outputs/evidence/duplicate_evidence.jsonl --evidence outputs/evidence/retrieval_evidence.jsonl --evidence outputs/evidence/image_similarity_evidence.jsonl --include-clean
-python3 scripts/build_evidence.py --items data/items.csv --evidence outputs/evidence/rule_evidence.jsonl --evidence outputs/evidence/duplicate_evidence.jsonl --evidence outputs/evidence/retrieval_evidence.jsonl --evidence outputs/evidence/image_similarity_evidence.jsonl --evidence outputs/evidence/ocr_rule_evidence.jsonl --output outputs/evidence/audit_cases_with_ocr.jsonl --summary outputs/evidence/audit_cases_with_ocr.csv --include-clean
-python3 scripts/build_evidence.py --items data/items.csv --evidence outputs/evidence/rule_evidence.jsonl --evidence outputs/evidence/duplicate_evidence.jsonl --evidence outputs/evidence/retrieval_evidence.jsonl --evidence outputs/evidence/image_similarity_evidence.jsonl --evidence outputs/evidence/ocr_rule_evidence_tesseract.jsonl --output outputs/evidence/audit_cases_with_tesseract_ocr.jsonl --summary outputs/evidence/audit_cases_with_tesseract_ocr.csv --include-clean
-python3 scripts/evaluate_cases.py --items data/items.csv --cases outputs/evidence/audit_cases.jsonl --risk-labels configs/risk_labels.yaml
-python3 scripts/analyze_errors.py --items data/items.csv --cases outputs/evidence/audit_cases.jsonl
-python3 scripts/query_cli.py --query "找疑似电子烟商品"
-python3 scripts/query_cli.py --query "查一下加微信私聊的商品" --only-risk
-python3 scripts/query_cli.py --query "今天天气怎么样"
-python3 scripts/query_cli.py --query "给我五个相似图片商品" --query-image data/samples/dup_earbuds_main.jpg --exclude-item sku_000046 --only-risk
-python3 scripts/query_cli.py --query "给我五个相似图片商品" --query-item-id sku_000046 --only-risk
-python3 scripts/query_cli.py --query "给我五个相似图片商品" --query-item-id sku_000046 --only-risk --emit-evidence outputs/evidence/cli_image_query_evidence.jsonl --emit-cases outputs/evidence/cli_image_query_cases.jsonl --emit-cases-summary outputs/evidence/cli_image_query_cases.csv
-python3 scripts/query_image.py --query-image data/samples/dup_earbuds_main.jpg --exclude-item sku_000046 --only-risk
-python3 scripts/smoke_query_cli_routes.py --router template
+## Final Architecture
+
+```text
+Product metadata + product images
+  -> validate item schema
+  -> build image manifest
+  -> run text rules
+  -> run OCR and OCR rules
+  -> compute image embeddings with SigLIP
+  -> retrieve visually similar items
+  -> aggregate evidence
+  -> query or export moderation cases
 ```
 
-## Cloud CLIP Smoke
+For image retrieval, the recommended final configuration is:
 
-云端 GPU 环境准备见 `docs/CLOUD_SETUP.md`。第一条 CLIP/SigLIP smoke 命令：
-
-```bash
-python scripts/check_gpu_env.py
-python scripts/smoke_clip_image_encoder.py \
-  --items data/items.csv \
-  --model-name openai/clip-vit-base-patch32 \
-  --device auto \
-  --limit 6
-python scripts/compute_clip_image_embeddings.py \
-  --manifest data/image_manifest.csv \
-  --model-name openai/clip-vit-base-patch32 \
-  --device auto \
-  --output outputs/embeddings/clip_image_embeddings.npz \
-  --manifest-output outputs/embeddings/clip_image_embeddings_manifest.csv
-python scripts/run_clip_image_retrieval.py \
-  --embeddings outputs/embeddings/clip_image_embeddings.npz \
-  --manifest outputs/embeddings/clip_image_embeddings_manifest.csv \
-  --top-k 5 \
-  --min-score 0.0 \
-  --results outputs/retrieval_results/clip_image_similarity.csv \
-  --output outputs/evidence/clip_image_similarity_evidence.jsonl
+```text
+Image backbone: google/siglip-base-patch16-224
+Retrieval mode: image-to-item nearest-neighbor search over cached embeddings
+Evidence threshold: tune per dataset; start from a conservative threshold for moderation review
 ```
 
-## Dataset v0.4 Crawled Platform Items
+The system is not a generative RAG chatbot. It is a retrieval and evidence-building pipeline. A language model can be added later to summarize evidence, but the moderation decision surface should stay grounded in structured evidence records.
 
-v0.4 的目标是采集小规模真实电商平台商品营销图、标题和详情文案，用来替代当前生成图/占位图对 CLIP、OCR 和 image-to-item 检索造成的分布偏差。方案说明见 `docs/DATASET_V0_4_CRAWLED.md`。
+## Repository Structure
 
-最小采集骨架：
+```text
+configs/
+  intent_router.yaml          # query intent routing config
+  retrieval_queries.yaml      # query templates and route defaults
+  risk_labels.yaml            # moderation labels and actions
+  rules.yaml                  # text/OCR moderation rules
 
-```bash
-python3 scripts/crawl_v0_4_items.py \
-  --input-urls data/seeds/v0_4_urls.txt \
-  --output data/seeds/v0_4_crawled_items.csv \
-  --image-dir data/crawled/v0_4/images \
-  --limit 20 \
-  --delay 2.0 \
-  --download-images
+src/
+  agents/                     # intent routing
+  evidence/                   # item-level case builder
+  ocr/                        # OCR backend abstraction
+  retrieval/                  # text/image retrieval utilities
+  rules/                      # rule matching engine
+
+scripts/
+  validate_items.py           # validate product metadata
+  build_image_manifest.py     # convert item metadata into image-level manifest
+  run_rules.py                # run text rules
+  run_ocr.py                  # OCR product images
+  run_ocr_rules.py            # run rules over OCR output
+  compute_clip_image_embeddings.py
+  run_clip_image_retrieval.py
+  build_evidence.py
+  query_cli.py
+  check_gpu_env.py
+
+docs/
+  CLOUD_SETUP.md
+  IMAGE_MANIFEST_AND_EMBEDDINGS.md
+  OCR_PIPELINE.md
 ```
 
-生成 manifest 和校验：
+## Data Format
 
-```bash
-python3 scripts/validate_items.py --items data/seeds/v0_4_crawled_items.csv --risk-labels configs/risk_labels.yaml
-python3 scripts/build_image_manifest.py --items data/seeds/v0_4_crawled_items.csv --output data/image_manifest_v0_4.csv
+The repository does not ship with product data. Prepare your own `data/items.csv` with the following columns:
+
+```csv
+item_id,title,description,category,shop_id,image_paths,ocr_text,risk_labels,risk_objects,source,split
+sku_000001,Example product title,Example product description,electronics,shop_001,data/images/sku_000001/main.jpg,,normal,,internal,test
 ```
 
-## Synthetic Platform Dataset
+Column notes:
 
-当前为了先跑通完整流程，可以用 API 生成平台风格合成数据。数据计划见 `docs/DATASET_PLAN.md`，配置见 `configs/synthetic_v0_4_generation.yaml`。
+- `item_id`: unique product ID.
+- `title`: product title.
+- `description`: product detail text.
+- `category`: product category.
+- `shop_id`: seller or shop identifier.
+- `image_paths`: one or more image paths separated by `|`.
+- `ocr_text`: optional precomputed OCR text, also separated by `|`.
+- `risk_labels`: optional labels separated by `|`.
+- `risk_objects`: optional visual or policy objects separated by `|`.
+- `source`: data source name.
+- `split`: optional dataset split such as `train`, `val`, or `test`.
 
-生成策略是两段式：图片模型只负责生成干净商品底图，脚本再统一叠加平台主图 UI 和清晰 OCR 风险文字，避免生图模型直接生成中文、伪文字或奇怪图标。
+Supported risk labels are configured in `configs/risk_labels.yaml`:
 
-先生成 metadata 和 prompt plan，不调用 API：
-
-```bash
-python3 scripts/build_synthetic_platform_dataset.py \
-  --config configs/synthetic_v0_4_generation.yaml \
-  --plan-only
+```text
+prohibited_goods
+counterfeit_brand
+image_duplicate
+off_platform_contact
+misleading_claim
+normal
 ```
 
-确认后先小批量 smoke，确认图片风格和字段都正常：
+## Installation
 
-```bash
-python3 scripts/build_synthetic_platform_dataset.py \
-  --config configs/synthetic_v0_4_generation.yaml \
-  --generate-images \
-  --limit 5
-```
-
-再生成全量图片：
-
-```bash
-python3 scripts/build_synthetic_platform_dataset.py \
-  --config configs/synthetic_v0_4_generation.yaml \
-  --generate-images
-```
-
-如果已经有图片，只想给现有图片重新叠加 OCR 文字，不调用 API：
-
-```bash
-python3 scripts/build_synthetic_platform_dataset.py \
-  --config configs/synthetic_v0_4_generation.yaml \
-  --apply-overlays-only \
-  --limit 5
-```
-
-## Cloud GPU Preparation
-
-当前不需要立刻租云 GPU。后续接入 CLIP/SigLIP/OCR/VLM 或更大规模 embedding 时，可按 `docs/CLOUD_SETUP.md` 准备云端环境。
-
-```bash
-pip install -r requirements-cloud.txt
-python3 scripts/check_gpu_env.py
-```
-
-## Text Embedding Backend
-
-`scripts/run_embedding_text_retrieval.py` 默认使用 `--backend auto`：有 `sentence-transformers` 时优先使用真实语义模型，否则回退到本地 LSI baseline。
-
-```bash
-python3 scripts/run_embedding_text_retrieval.py \
-  --backend lsi_tfidf_svd \
-  --items data/seeds/v0_3_semireal_items.csv
-```
-
-本地已验证的真实语义 backend：
+Create a Python environment and install the runtime dependencies:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install sentence-transformers
-.venv/bin/python scripts/run_embedding_text_retrieval.py \
-  --backend sentence_transformers \
-  --model-name sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 \
-  --items data/seeds/v0_3_semireal_items.csv
+.venv/bin/python -m pip install -U pip
+.venv/bin/python -m pip install -r requirements-cloud.txt
 ```
 
-语义候选进入审核证据前，建议先做同风险证据确认：
+Check the local or cloud GPU environment:
 
 ```bash
-.venv/bin/python scripts/confirm_semantic_retrieval.py \
-  --items data/seeds/v0_3_semireal_items.csv \
-  --results outputs/retrieval_results/v0_3_sentence_transformers_text_retrieval.csv \
-  --confirmation-evidence outputs/evidence/v0_3_rule_evidence.jsonl \
-  --confirmation-evidence outputs/evidence/v0_3_duplicate_evidence.jsonl \
-  --confirmation-evidence outputs/evidence/v0_3_image_similarity_evidence.jsonl
+.venv/bin/python scripts/check_gpu_env.py
 ```
 
-CLI 可以展示语义候选和已确认语义证据：
+OCR support depends on your local Tesseract installation when using the `tesseract` backend. See `docs/OCR_PIPELINE.md` for details.
+
+## Offline Index Build
+
+Validate item metadata:
+
+```bash
+.venv/bin/python scripts/validate_items.py \
+  --items data/items.csv \
+  --risk-labels configs/risk_labels.yaml
+```
+
+Build an image manifest:
+
+```bash
+.venv/bin/python scripts/build_image_manifest.py \
+  --items data/items.csv \
+  --output data/image_manifest.csv
+```
+
+Run text rules:
+
+```bash
+.venv/bin/python scripts/run_rules.py \
+  --items data/items.csv \
+  --rules configs/rules.yaml \
+  --risk-labels configs/risk_labels.yaml \
+  --output outputs/evidence/rule_evidence.jsonl \
+  --summary outputs/evidence/rule_summary.csv
+```
+
+Run OCR and OCR rules:
+
+```bash
+.venv/bin/python scripts/run_ocr.py \
+  --items data/items.csv \
+  --backend auto \
+  --output outputs/ocr/item_ocr.jsonl
+
+.venv/bin/python scripts/run_ocr_rules.py \
+  --ocr outputs/ocr/item_ocr.jsonl \
+  --rules configs/rules.yaml \
+  --risk-labels configs/risk_labels.yaml \
+  --output outputs/evidence/ocr_rule_evidence.jsonl \
+  --summary outputs/evidence/ocr_rule_summary.csv
+```
+
+Compute image embeddings with SigLIP:
+
+```bash
+.venv/bin/python scripts/compute_clip_image_embeddings.py \
+  --manifest data/image_manifest.csv \
+  --model-name google/siglip-base-patch16-224 \
+  --device auto \
+  --batch-size 32 \
+  --output outputs/embeddings/siglip_image_embeddings.npz \
+  --manifest-output outputs/embeddings/siglip_image_embeddings_manifest.csv
+```
+
+Run image-to-item retrieval:
+
+```bash
+.venv/bin/python scripts/run_clip_image_retrieval.py \
+  --embeddings outputs/embeddings/siglip_image_embeddings.npz \
+  --manifest outputs/embeddings/siglip_image_embeddings_manifest.csv \
+  --top-k 5 \
+  --min-score 0.97 \
+  --results outputs/retrieval_results/siglip_image_similarity.csv \
+  --output outputs/evidence/siglip_image_similarity_evidence.jsonl
+```
+
+Build item-level audit cases:
+
+```bash
+.venv/bin/python scripts/build_evidence.py \
+  --items data/items.csv \
+  --evidence outputs/evidence/rule_evidence.jsonl \
+  --evidence outputs/evidence/ocr_rule_evidence.jsonl \
+  --evidence outputs/evidence/siglip_image_similarity_evidence.jsonl \
+  --output outputs/evidence/audit_cases.jsonl \
+  --summary outputs/evidence/audit_cases.csv \
+  --include-clean
+```
+
+## Query CLI
+
+Run a text query over the prepared audit cases:
 
 ```bash
 .venv/bin/python scripts/query_cli.py \
-  --query "找疑似电子烟商品" \
-  --items data/seeds/v0_3_semireal_items.csv \
-  --cases outputs/evidence/v0_3_audit_cases_semantic_confirmed_full.jsonl \
-  --semantic-candidates outputs/retrieval_results/v0_3_sentence_transformers_confirmed_candidates.csv \
-  --only-risk \
-  --show-unconfirmed-semantic
+  --query "查一下加微信私聊的商品" \
+  --items data/items.csv \
+  --cases outputs/evidence/audit_cases.jsonl \
+  --queries configs/retrieval_queries.yaml \
+  --intent-config configs/intent_router.yaml \
+  --only-risk
 ```
 
-## LLM Intent Router
-
-当前 CLI 支持 template / LLM / hybrid 三种意图识别入口：
+Run an image-based query with a reference image:
 
 ```bash
-python3 scripts/query_cli.py --query "查一下加微信私聊的商品" --router template
-python3 scripts/query_cli.py --query "查一下加微信私聊的商品" --router hybrid
+.venv/bin/python scripts/query_cli.py \
+  --query "查找相似商品图片" \
+  --items data/items.csv \
+  --cases outputs/evidence/audit_cases.jsonl \
+  --query-image path/to/reference.jpg \
+  --top-k 5 \
+  --image-min-score 0.97
 ```
 
-LLM router 从 `configs/intent_router.yaml` 读取模型和 schema 配置，API key 从 `OPENAI_API_KEY` 或本地 `.env` 读取。
-可参考 `.env.example` 创建本地 `.env`。
+The CLI supports template and hybrid routing. If you enable LLM routing, configure `configs/intent_router.yaml` and set API keys through environment variables or a local `.env` file.
 
-```bash
-python3 scripts/evaluate_intent_router.py --router template
-python3 scripts/evaluate_intent_router.py --router hybrid
+## Evidence Output
+
+Evidence records are JSONL objects. Audit cases aggregate evidence by item and contain:
+
+- `item_id`
+- risk labels and confidence scores
+- matched rule/OCR snippets
+- similar image matches and similarity scores
+- suggested moderation action
+
+The recommended moderation actions are configured in `configs/risk_labels.yaml`:
+
+```text
+pass
+manual_review
+remove_or_block
+merge_duplicate
 ```
 
-## Dataset v0.2 Candidate
+## What Is Not Included
 
-当前 v0.1 主数据文件仍是 `data/items.csv`。如果要生成 v0.2 候选数据集：
+The clean release intentionally excludes:
 
-```bash
-python3 scripts/expand_sample_items_v0_2.py --base data/items.csv --output data/items_v0_2.csv
-python3 scripts/validate_items.py --items data/items_v0_2.csv --risk-labels configs/risk_labels.yaml
-python3 scripts/generate_sample_images.py --items data/items_v0_2.csv
-python3 scripts/build_image_manifest.py --items data/items_v0_2.csv --output data/image_manifest_v0_2.csv
-```
+- generated or crawled product images
+- synthetic dataset generation configs
+- experiment outputs and metrics
+- embedding caches
+- model weights
+- local virtual environments
+- development logs
 
-如果要追加人工维护的高质量 seed：
+This keeps the repository focused on the final architecture and runnable system components.
 
-```bash
-python3 scripts/expand_sample_items_v0_2.py \
-  --base data/items.csv \
-  --output data/items_v0_2.csv \
-  --curated-seeds data/seeds/v0_2_curated_items.csv
-```
+## Documentation
 
-当前 v0.2 加入了 `data/seeds/v0_2_curated_items.csv` 中的人工 seed 后共 536 条。v0.2 用于下一阶段数据扩展、规则校准和模型接入准备；在确认质量前，不直接替换 v0.1 回归集。
+- `docs/CLOUD_SETUP.md`: cloud GPU setup and model inference notes.
+- `docs/IMAGE_MANIFEST_AND_EMBEDDINGS.md`: image manifest and embedding cache design.
+- `docs/OCR_PIPELINE.md`: OCR backend and OCR evidence flow.
 
-## Data Principle
+## License
 
-大文件不提交到 Git，包括：
-
-- 原始图片
-- 商品图片集
-- 模型权重
-- embedding 缓存
-- 大型实验输出
-
-Git 中只保留代码、配置、metadata、规则和小规模样例。
+Add a license before publishing or reusing this project in a public setting.
